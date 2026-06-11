@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CLAWorld · 公众号排版</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E✍️%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="brand-dot"></span>CLAWorld <em>公众号排版</em></div>
+  <div class="topbar-actions">
+    <button id="btnSample" class="btn ghost" title="载入示例文章">示例</button>
+    <button id="btnUpload" class="btn ghost" title="上传 .md / .html / 图片">上传文件</button>
+    <button id="btnExportMd" class="btn ghost">导出 MD</button>
+    <button id="btnExportHtml" class="btn ghost">导出 HTML</button>
+    <button id="btnAI" class="btn ai">AI 排版 ✨</button>
+    <button id="btnSettings" class="btn ghost" title="排版设置">⚙ 设置</button>
+    <button id="btnCopy" class="btn primary" title="Ctrl/Cmd + Enter">复制到公众号</button>
+  </div>
+  <input type="file" id="fileInput" accept=".md,.markdown,.txt,.html,.htm,image/*" hidden>
+</header>
+
+<nav class="theme-strip">
+  <span class="strip-label">主题</span>
+  <div class="theme-bar" id="themeBar"></div>
+</nav>
+
+<main class="workspace">
+  <section class="pane editor-pane">
+    <div class="snippet-bar">
+      <button data-snippet="h2" title="二级标题">H2</button>
+      <button data-snippet="bold" title="加粗"><b>B</b></button>
+      <button data-snippet="mark" title="荧光笔高亮">==高亮==</button>
+      <button data-snippet="quote" title="引用">❝ 引用</button>
+      <button data-snippet="code" title="代码块">&lt;/&gt;</button>
+      <button data-snippet="img" title="单张图片">🖼 图片</button>
+      <button data-snippet="gallery" title="多图横排">🖼🖼 多图</button>
+      <button data-snippet="tip" title="贴士卡片">💡 贴士</button>
+      <button data-snippet="warning" title="警示卡片">⚠ 注意</button>
+      <button data-snippet="center" title="内容居中">≡ 居中</button>
+      <button data-snippet="table" title="表格">▦ 表格</button>
+      <button data-snippet="hr" title="分隔线">—</button>
+    </div>
+    <textarea id="editor" spellcheck="false" placeholder="在这里写 Markdown，或把 .md / .html 文件拖进来…"></textarea>
+    <div class="status-bar">
+      <span id="wordCount">0 字</span>
+      <span class="hint">支持拖入 .md / .html / 图片 · Ctrl+Enter 复制</span>
+    </div>
+  </section>
+
+  <section class="pane preview-pane">
+    <div class="phone">
+      <div class="phone-head">
+        <span class="ph-back">‹</span>
+        <span class="ph-title">预览 · 公众号样式</span>
+        <span class="ph-more">···</span>
+      </div>
+      <div class="phone-body">
+        <div id="preview"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 设置抽屉 -->
+<aside class="drawer" id="settingsDrawer">
+  <div class="drawer-head"><h3>排版设置</h3><button class="drawer-close">✕</button></div>
+  <div class="drawer-body">
+    <label class="field">字号
+      <select id="optFontSize">
+        <option value="15">15px（小）</option>
+        <option value="16">16px（推荐）</option>
+        <option value="17">17px（大）</option>
+      </select>
+    </label>
+    <label class="field">代码配色
+      <select id="optCodeTheme"></select>
+    </label>
+    <label class="field">主色调
+      <span class="field-row"><input type="color" id="optPrimary"><button id="optPrimaryReset" class="btn ghost sm">恢复主题默认</button></span>
+    </label>
+    <label class="toggle"><input type="checkbox" id="optMacCode"><span>Mac 风格代码框</span></label>
+    <label class="toggle"><input type="checkbox" id="optCaptions"><span>图片 alt 显示为图注</span></label>
+    <label class="toggle"><input type="checkbox" id="optLinkFootnote"><span>外链转文末「参考链接」</span></label>
+    <label class="toggle"><input type="checkbox" id="optIndent"><span>段落首行缩进 2 字符</span></label>
+    <label class="toggle"><input type="checkbox" id="optJustify"><span>两端对齐</span></label>
+    <p class="drawer-note">所有样式都会内联进 HTML，复制后粘贴到公众号后台不丢样式。</p>
+  </div>
+</aside>
+
+<!-- AI 抽屉 -->
+<aside class="drawer" id="aiDrawer">
+  <div class="drawer-head"><h3>AI 一句话排版</h3><button class="drawer-close">✕</button></div>
+  <div class="drawer-body">
+    <label class="field">服务商
+      <select id="aiPreset"></select>
+    </label>
+    <label class="field">API 地址
+      <input type="text" id="aiBaseUrl" placeholder="https://api.deepseek.com/v1">
+    </label>
+    <label class="field">模型
+      <input type="text" id="aiModel" placeholder="deepseek-chat">
+    </label>
+    <label class="field">API Key <span class="muted">（仅保存在本机浏览器）</span>
+      <input type="password" id="aiKey" placeholder="sk-...">
+    </label>
+
+    <label class="field">想怎么排？
+      <textarea id="aiInstruction" rows="3" placeholder="例：把这篇文章重新排版，分出小标题，重点句加高亮，关键提醒放进贴士卡片"></textarea>
+    </label>
+    <div class="ai-quicks">
+      <button class="ai-quick" data-prompt="对全文做一次精排：合理切分小标题，重点句用==高亮==或加粗，关键提醒放进 :::tip 或 :::warning 卡片，长段落适当拆分，开头加一段引人入胜的导语。">一键精排</button>
+      <button class="ai-quick" data-prompt="为这篇文章生成 5 个吸引人的公众号标题，放在文章开头的 :::card 备选标题 卡片里，原文其余内容保持不变。">起标题</button>
+      <button class="ai-quick" data-prompt="在文章开头生成一段 100 字以内的导语摘要，放进 :::tip 导读 卡片中，其余内容保持不变。">写导语</button>
+      <button class="ai-quick" data-prompt="为每个小标题前面加一个贴切的 emoji，并把文中最关键的 3-5 句话用==高亮==标出，其他内容不变。">加 emoji</button>
+      <button class="ai-quick" data-prompt="把这篇文章改写得更口语化、更有网感，适合公众号阅读，段落更短，并根据内容气质换一个更合适的主题。">口语化</button>
+    </div>
+    <button id="aiRun" class="btn ai wide">开始排版 ✨</button>
+    <button id="aiRestore" class="btn ghost wide" hidden>恢复原文</button>
+    <p id="aiStatus" class="drawer-note"></p>
+    <p class="drawer-note">浏览器直连 API，密钥不会上传到任何服务器。国内可用 DeepSeek / Kimi / 通义 / 智谱，也支持任意 OpenAI 兼容接口与 Claude。</p>
+  </div>
+</aside>
+
+<div class="overlay" id="overlay"></div>
+<div class="toast" id="toast"></div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

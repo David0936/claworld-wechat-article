@@ -1,0 +1,24 @@
+{
+  "name": "claworld-wechat-article",
+  "version": "1.0.0",
+  "description": "微信公众号 Markdown 排版工具：多主题、多图排版、代码高亮、AI 一句话排版",
+  "scripts": {
+    "test": "node test/render.test.mjs",
+    "vendor": "node bundle-vendor.mjs",
+    "serve": "python3 -m http.server 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:32771/git/David0936/claworld-wechat-article"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.0",
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.5",
+    "turndown": "^7.2.4"
+  },
+  "type": "module"
+}
