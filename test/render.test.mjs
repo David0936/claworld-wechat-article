@@ -57,5 +57,24 @@ check('HTML 转义', edge.includes('&lt;脚本&gt;'));
 check('任务列表', edge.includes('☐') && edge.includes('☑'));
 check('空内容', render('', THEMES[0], {}).includes('<section'));
 
+// 自动识别语言：未标语言的 python，应被高亮（出现内联 color span）且标出 python
+const autoCode = render('```\ndef greet(name):\n    print(f"hello {name}")\n    return True\n```', THEMES[0], {});
+check('未标语言代码被高亮', /<span style="color:#[0-9a-f]{6}">/.test(autoCode));
+check('自动识别标出 python', autoCode.includes('>python<'));
+const autoOff = render('```\ndef greet(name):\n    print(name)\n```', THEMES[0], { autoLang: false });
+check('关闭自动识别后不高亮', !/<span style="color:#[0-9a-f]{6}">/.test(autoOff));
+
+// 图片地址自动转图片
+const bareImg = render('看图 https://example.com/pic.jpg 很好', THEMES[0], {});
+check('行内图片地址转 img', bareImg.includes('<img src="https://example.com/pic.jpg"'));
+const standaloneImg = render('https://cdn.test.com/a.png', THEMES[0], {});
+check('独占行图片地址转居中大图', standaloneImg.includes('<img') && standaloneImg.includes('margin:0 auto'));
+const galleryUrls = render('https://t.co/1.jpg https://t.co/2.png https://t.co/3.webp', THEMES[0], {});
+check('多个图片地址转网格', (galleryUrls.match(/<img/g) || []).length === 3 && galleryUrls.includes('display:flex'));
+const imgOff = render('https://example.com/pic.jpg', THEMES[0], { autoImage: false });
+check('关闭后图片地址不转 img', !imgOff.includes('<img'));
+const realLink = render('文档 https://example.com/docs 在这', THEMES[0], { linkFootnote: false });
+check('非图片地址仍是链接', realLink.includes('<a href="https://example.com/docs"'));
+
 if (failures) { console.error(`\n${failures} 个检查失败`); process.exit(1); }
 console.log(`✓ 全部通过（${THEMES.length} 主题 × 2 选项组合 + ${CODE_THEMES.length} 代码配色 + 边界用例）`);

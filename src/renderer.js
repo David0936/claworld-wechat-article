@@ -48,6 +48,10 @@ const esc = s => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+// 形如 https://x/y.jpg 的图片地址（允许带 query / hash）
+const IMG_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif|ico)(\?[^\s]*)?(#[^\s]*)?$/i;
+const isImageURL = href => IMG_EXT.test(href || '');
+
 // ---------- 行内 token ----------
 
 function emitInline(tokens, ctx) {
@@ -72,7 +76,11 @@ function emitInline(tokens, ctx) {
       case 'br':
         out += '<br>'; break;
       case 'link':
-        out += emitLink(tk, ctx); break;
+        // 裸图片地址（GFM 自动链接得到 link token）-> 直接当图片渲染
+        if (ctx.opts.autoImage !== false && isImageURL(tk.href)) {
+          out += emitImg({ type: 'image', href: tk.href, text: '', title: null }, ctx, true);
+        } else out += emitLink(tk, ctx);
+        break;
       case 'image':
         out += emitImg(tk, ctx, true); break;
       case 'html':
@@ -132,19 +140,27 @@ function emitGallery(imgs, ctx) {
 function emitCode(tk, ctx) {
   const o = ctx.t.o;
   const ct = codeThemeById(ctx.opts.codeTheme);
-  const lang = (tk.lang || '').trim().split(/\s+/)[0].toLowerCase();
-  let body;
+  let lang = (tk.lang || '').trim().split(/\s+/)[0].toLowerCase();
+  let body, label = lang;
   try {
-    body = lang && hljs.getLanguage(lang)
-      ? inlineHighlight(hljs.highlight(tk.text, { language: lang }).value, ct)
-      : esc(tk.text);
+    if (lang && hljs.getLanguage(lang)) {
+      body = inlineHighlight(hljs.highlight(tk.text, { language: lang }).value, ct);
+    } else if (ctx.opts.autoLang !== false) {
+      // 没标语言（或不认识的语言）-> 自动识别并高亮
+      const r = hljs.highlightAuto(tk.text);
+      body = inlineHighlight(r.value, ct);
+      // 置信度够高才把识别出的语言名显示在标题栏，避免误标
+      if (r.language && r.relevance >= 5) label = r.language;
+    } else {
+      body = esc(tk.text);
+    }
   } catch { body = esc(tk.text); }
 
   const dot = c => `<span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:${c};margin-right:7px;"></span>`;
   const macBar = ctx.opts.macCode
     ? `<section style="background:${ct.barBg};padding:9px 14px;display:flex;align-items:center;">` +
       dot('#ff5f56') + dot('#ffbd2e') + dot('#27c93f') +
-      (lang ? `<span style="margin-left:auto;color:${ct.langColor};font-size:12px;font-family:${FONTS.mono};">${esc(lang)}</span>` : '') +
+      (label ? `<span style="margin-left:auto;color:${ct.langColor};font-size:12px;font-family:${FONTS.mono};">${esc(label)}</span>` : '') +
       `</section>`
     : '';
   return `<section style="margin:1.6em 0;border-radius:10px;overflow:hidden;box-shadow:0 5px 16px rgba(0,0,0,.14);">` +
@@ -166,7 +182,14 @@ function pStyle(ctx) {
 }
 
 function emitParagraph(tk, ctx) {
-  const toks = tk.tokens || [];
+  // 把裸图片地址（link token，href 以图片后缀结尾）统一视作图片，
+  // 这样独占一行的图片地址也能走「居中大图 / 多图网格」逻辑
+  const toks = (ctx.opts.autoImage !== false)
+    ? (tk.tokens || []).map(t =>
+        (t.type === 'link' && isImageURL(t.href))
+          ? { type: 'image', href: t.href, text: '', title: null }
+          : t)
+    : (tk.tokens || []);
   const imgs = toks.filter(t => t.type === 'image');
   const rest = toks.filter(t => t.type !== 'image' && !(t.type === 'text' && !t.text.trim()) && t.type !== 'br');
   if (imgs.length && rest.length === 0) {
@@ -267,6 +290,8 @@ export const DEFAULT_OPTS = {
   justify: false,       // 两端对齐
   macCode: true,        // Mac 风格代码框
   codeTheme: 'github-dark',
+  autoLang: true,       // 未标语言的代码块自动识别语言并高亮
+  autoImage: true,      // 图片地址（.jpg/.png…）自动渲染为图片
   linkFootnote: true,   // 外链转文末引用
   captions: true,       // 图片 alt 显示为图注
   primary: null,        // 主色覆盖（null = 使用主题默认）

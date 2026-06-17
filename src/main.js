@@ -71,6 +71,8 @@ function syncSettingsUI() {
   $('optIndent').checked = state.opts.indent;
   $('optJustify').checked = state.opts.justify;
   $('optMacCode').checked = state.opts.macCode;
+  $('optAutoLang').checked = state.opts.autoLang;
+  $('optAutoImage').checked = state.opts.autoImage;
   $('optLinkFootnote').checked = state.opts.linkFootnote;
   $('optCaptions').checked = state.opts.captions;
   $('optPrimary').value = state.opts.primary || themeById(state.themeId).defaults.primary;
@@ -90,6 +92,8 @@ bindOpt('optCodeTheme', 'codeTheme', 'value');
 bindOpt('optIndent', 'indent');
 bindOpt('optJustify', 'justify');
 bindOpt('optMacCode', 'macCode');
+bindOpt('optAutoLang', 'autoLang');
+bindOpt('optAutoImage', 'autoImage');
 bindOpt('optLinkFootnote', 'linkFootnote');
 bindOpt('optCaptions', 'captions');
 $('optPrimary').addEventListener('change', e => {
