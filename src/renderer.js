@@ -7,7 +7,7 @@
 import { marked } from '../vendor/marked.js';
 import hljs from '../vendor/highlight.js';
 import { FONTS, rgba } from './themes.js';
-import { codeThemeById, inlineHighlight } from './codeThemes.js';
+import { codeThemeById, buildFollowTheme, inlineHighlight } from './codeThemes.js';
 
 // ---------- 自定义语法扩展 ----------
 
@@ -139,7 +139,9 @@ function emitGallery(imgs, ctx) {
 
 function emitCode(tk, ctx) {
   const o = ctx.t.o;
-  const ct = codeThemeById(ctx.opts.codeTheme);
+  const ct = ctx.opts.codeTheme === 'follow'
+    ? buildFollowTheme(o.primary)
+    : codeThemeById(ctx.opts.codeTheme);
   let lang = (tk.lang || '').trim().split(/\s+/)[0].toLowerCase();
   let body, label = lang;
   try {

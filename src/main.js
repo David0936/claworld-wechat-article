@@ -1,8 +1,9 @@
 import { THEMES, themeById } from './themes.js';
-import { CODE_THEMES } from './codeThemes.js';
+import { CODE_THEMES, buildFollowTheme, inlineHighlight } from './codeThemes.js';
 import { render, DEFAULT_OPTS } from './renderer.js';
 import { AI_PRESETS, aiRun } from './ai.js';
 import { SAMPLE_MD } from './sample.js';
+import hljs from '../vendor/highlight.js';
 import TurndownService from '../vendor/turndown.js';
 
 const $ = id => document.getElementById(id);
@@ -48,6 +49,7 @@ $('themeBar').addEventListener('click', e => {
   state.themeId = btn.dataset.id;
   store.set('theme', state.themeId);
   renderThemeBar();
+  buildCodeThemePicker();
   rerender(true);
 });
 renderThemeBar();
@@ -63,11 +65,44 @@ document.querySelectorAll('.drawer-close').forEach(b => b.addEventListener('clic
 $('btnSettings').addEventListener('click', () => openDrawer('settingsDrawer'));
 $('btnAI').addEventListener('click', () => openDrawer('aiDrawer'));
 
-$('optCodeTheme').innerHTML = CODE_THEMES.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+// ---- 代码配色：带实时预览的卡片选择器 ----
+const CODE_PREVIEW = `function hello(name) {\n  // 打个招呼\n  return \`Hi, \${name}\`;\n}`;
+
+function currentPrimary() {
+  return state.opts.primary || themeById(state.themeId).defaults.primary;
+}
+
+function codeThemeCard(ct) {
+  let body;
+  try { body = inlineHighlight(hljs.highlight(CODE_PREVIEW, { language: 'javascript' }).value, ct); }
+  catch { body = CODE_PREVIEW; }
+  const active = state.opts.codeTheme === ct.id ? ' active' : '';
+  const dot = c => `<span class="cc-dot" style="background:${c}"></span>`;
+  return `<button type="button" class="code-card${active}" data-id="${ct.id}">
+    <div class="cc-window" style="background:${ct.bg}">
+      <div class="cc-bar" style="background:${ct.barBg}">${dot('#ff5f56')}${dot('#ffbd2e')}${dot('#27c93f')}</div>
+      <pre class="cc-code" style="color:${ct.fg}"><code>${body}</code></pre>
+    </div>
+    <div class="cc-meta"><span class="cc-name">${ct.name}</span><span class="cc-desc">${ct.desc || ''}</span></div>
+  </button>`;
+}
+
+function buildCodeThemePicker() {
+  const list = [buildFollowTheme(currentPrimary()), ...CODE_THEMES];
+  $('codeThemeGrid').innerHTML = list.map(codeThemeCard).join('');
+}
+$('codeThemeGrid').addEventListener('click', e => {
+  const card = e.target.closest('.code-card');
+  if (!card) return;
+  state.opts.codeTheme = card.dataset.id;
+  store.set('opts', state.opts);
+  buildCodeThemePicker();
+  rerender(true);
+});
+buildCodeThemePicker();
 
 function syncSettingsUI() {
   $('optFontSize').value = String(state.opts.fontSize);
-  $('optCodeTheme').value = state.opts.codeTheme;
   $('optIndent').checked = state.opts.indent;
   $('optJustify').checked = state.opts.justify;
   $('optMacCode').checked = state.opts.macCode;
@@ -88,7 +123,6 @@ function bindOpt(id, key, type = 'checkbox') {
   });
 }
 bindOpt('optFontSize', 'fontSize', 'number');
-bindOpt('optCodeTheme', 'codeTheme', 'value');
 bindOpt('optIndent', 'indent');
 bindOpt('optJustify', 'justify');
 bindOpt('optMacCode', 'macCode');
@@ -98,11 +132,11 @@ bindOpt('optLinkFootnote', 'linkFootnote');
 bindOpt('optCaptions', 'captions');
 $('optPrimary').addEventListener('change', e => {
   state.opts.primary = e.target.value;
-  store.set('opts', state.opts); rerender(true);
+  store.set('opts', state.opts); buildCodeThemePicker(); rerender(true);
 });
 $('optPrimaryReset').addEventListener('click', () => {
   state.opts.primary = null;
-  store.set('opts', state.opts); syncSettingsUI(); rerender(true);
+  store.set('opts', state.opts); syncSettingsUI(); buildCodeThemePicker(); rerender(true);
 });
 
 // ---------- 复制到公众号 ----------
@@ -265,7 +299,7 @@ $('aiRun').addEventListener('click', async () => {
     });
     editor.value = markdown;
     if (theme && themeById(theme).id === theme) {
-      state.themeId = theme; store.set('theme', theme); renderThemeBar();
+      state.themeId = theme; store.set('theme', theme); renderThemeBar(); buildCodeThemePicker();
     }
     rerender(true);
     $('aiRestore').hidden = false;
